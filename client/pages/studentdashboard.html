@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Student Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 min-h-screen p-4">
+
+<div class="max-w-6xl mx-auto">
+
+<!-- HEADER -->
+<div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+<h1 class="text-white text-3xl font-bold text-center">
+Student Dashboard
+</h1>
+
+<button onclick="logout()"
+class="bg-gradient-to-r from-red-500 to-pink-600 hover:from-pink-600 hover:to-red-700 text-white px-5 py-2 rounded-xl font-semibold shadow-lg transition duration-300">
+Logout
+</button>
+</div>
+
+<!-- PROFILE -->
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-3xl shadow-2xl mb-6">
+  <h2 class="font-bold text-xl text-white mb-2">Profile</h2>
+  <p id="profile" class="text-gray-300"></p>
+</div>
+
+<!-- STATS -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-3xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Total Subjects</p>
+<h2 class="text-3xl font-bold mt-2" id="total">0</h2>
+</div>
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-3xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Pass Percentage</p>
+<h2 class="text-3xl font-bold mt-2" id="pass">0%</h2>
+</div>
+
+</div>
+
+<!-- CHART -->
+<div class="bg-white rounded-3xl shadow-2xl p-6 mb-6">
+<h2 class="font-bold text-xl text-gray-800 mb-4">Result Chart</h2>
+<div class="max-w-sm mx-auto">
+<canvas id="chart"></canvas>
+</div>
+</div>
+
+<!-- RESULTS -->
+<div class="bg-white rounded-3xl shadow-2xl p-6 mb-6 overflow-x-auto">
+<h2 class="font-bold text-xl text-gray-800 mb-4">My Results</h2>
+
+<table class="w-full border-collapse rounded-xl overflow-hidden">
+<thead>
+<tr class="bg-slate-800 text-white">
+<th class="p-3 text-left">Subject</th>
+<th class="p-3 text-left">Marks</th>
+<th class="p-3 text-left">Status</th>
+<th class="p-3 text-left">Grade</th>
+</tr>
+</thead>
+<tbody id="resultTable" class="text-gray-700"></tbody>
+</table>
+</div>
+
+<!-- EXAMS -->
+<div class="bg-white rounded-3xl shadow-2xl p-6 mb-6 overflow-x-auto">
+<h2 class="font-bold text-xl text-gray-800 mb-4">My Exams</h2>
+
+<table class="w-full border-collapse rounded-xl overflow-hidden">
+<thead>
+<tr class="bg-slate-800 text-white">
+<th class="p-3 text-left">Exam</th>
+<th class="p-3 text-left">Subject</th>
+<th class="p-3 text-left">Date</th>
+<th class="p-3 text-left">Time</th>
+</tr>
+</thead>
+<tbody id="examTable" class="text-gray-700"></tbody>
+</table>
+</div>
+
+<!-- ATTENDANCE -->
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-6 rounded-3xl shadow-2xl">
+<h2 class="font-bold text-xl text-white mb-2">Attendance</h2>
+<p id="attendance" class="text-3xl font-bold text-green-400">0%</p>
+</div>
+
+</div>
+
+<script>
+
+// LOGIN CHECK
+const student = JSON.parse(localStorage.getItem("student"));
+
+if(!student){
+    window.location = "studentlogin.html";
+}
+
+// PROFILE
+document.getElementById("profile").innerText =
+    student.name.trim() + " | Class: " + student.className + " | Roll: " + student.rollNo;
+
+
+// ================= RESULTS =================
+fetch("http://localhost:5000/results")
+.then(r=>r.json())
+.then(data=>{
+
+    let my = data.filter(x =>
+        x.studentName.trim().toLowerCase() === student.name.trim().toLowerCase()
+    );
+
+    document.getElementById("total").innerText = my.length;
+
+    let pass = my.filter(x=>x.status==="Pass").length;
+    let fail = my.length - pass;
+
+    document.getElementById("pass").innerText =
+        (my.length ? (pass/my.length*100).toFixed(2) : 0)+"%";
+
+    let html="";
+
+    if(my.length === 0){
+        html = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No Results Found</td></tr>`;
+    }
+
+    my.forEach(x=>{
+        html += `
+        <tr class="border-b hover:bg-gray-100 transition">
+          <td class="p-3">${x.subject}</td>
+          <td class="p-3 font-semibold">${x.marks}</td>
+          <td class="p-3">
+            <span class="${x.status === 'Pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-sm font-semibold">
+              ${x.status}
+            </span>
+          </td>
+          <td class="p-3 font-bold">${x.grade}</td>
+        </tr>`;
+    });
+
+    document.getElementById("resultTable").innerHTML = html;
+
+    new Chart(document.getElementById("chart"), {
+        type:"pie",
+        data:{
+            labels:["Pass","Fail"],
+            datasets:[{
+                data:[pass,fail],
+                backgroundColor:["green","red"]
+            }]
+        }
+    });
+
+});
+
+
+// ================= EXAMS =================
+fetch("http://localhost:5000/exams")
+.then(r=>r.json())
+.then(data=>{
+
+    let html="";
+
+    let filtered = data.filter(e => 
+        !e.className || e.className === student.className
+    );
+
+    if(filtered.length === 0){
+        html = `<tr><td colspan="4" class="text-center p-4 text-gray-500">No Exams Found</td></tr>`;
+    }
+
+    filtered.forEach(e=>{
+        html += `
+        <tr class="border-b hover:bg-gray-100 transition">
+          <td class="p-3">${e.name}</td>
+          <td class="p-3">${e.subject}</td>
+          <td class="p-3">${e.date}</td>
+          <td class="p-3">${e.time || "-"}</td>
+        </tr>`;
+    });
+
+    document.getElementById("examTable").innerHTML = html;
+
+});
+
+
+// ================= ATTENDANCE =================
+fetch("http://localhost:5000/attendance")
+.then(r=>r.json())
+.then(data=>{
+
+    let my = data.filter(x => 
+        x.studentName.trim().toLowerCase() === student.name.trim().toLowerCase()
+    );
+
+    if(my.length === 0){
+        document.getElementById("attendance").innerText = "No Attendance Data";
+        document.getElementById("attendance").className = "text-xl font-semibold text-gray-300";
+        return;
+    }
+
+    let present = my.filter(x=>x.status==="Present").length;
+
+    document.getElementById("attendance").innerText =
+        (present/my.length*100).toFixed(2) + "%";
+
+});
+
+
+// LOGOUT
+function logout(){
+    localStorage.removeItem("student");
+    window.location = "studentlogin.html";
+}
+
+</script>
+
+</body>
+</html>

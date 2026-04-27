@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Teacher Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 min-h-screen p-6">
+
+<div class="max-w-7xl mx-auto">
+
+<h1 class="text-white text-4xl mb-2 font-bold text-center">
+👨‍🏫 Teacher Dashboard
+</h1>
+<p class="text-gray-300 text-center mb-8">Manage exams, results, attendance and reports</p>
+
+<!-- CARDS -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-5 mb-8">
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-5 rounded-2xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Total Students</p>
+<h2 class="text-3xl font-bold mt-2" id="students">0</h2>
+</div>
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-5 rounded-2xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Total Exams</p>
+<h2 class="text-3xl font-bold mt-2" id="exams">0</h2>
+</div>
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-5 rounded-2xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Pass Percentage</p>
+<h2 class="text-3xl font-bold mt-2" id="pass">0%</h2>
+</div>
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-5 rounded-2xl shadow-xl text-white">
+<p class="text-gray-300 text-sm">Attendance Percentage</p>
+<h2 class="text-3xl font-bold mt-2" id="attendance">0%</h2>
+</div>
+
+</div>
+
+<!-- NAV -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-5 mb-8">
+
+<a href="exam.html" class="bg-white/10 hover:bg-white/20 transition p-6 rounded-2xl shadow-xl text-center text-white border border-white/20">
+<div class="text-3xl mb-2">📝</div>
+Exams
+</a>
+
+<a href="result.html" class="bg-white/10 hover:bg-white/20 transition p-6 rounded-2xl shadow-xl text-center text-white border border-white/20">
+<div class="text-3xl mb-2">📊</div>
+Results
+</a>
+
+<a href="attendance.html" class="bg-white/10 hover:bg-white/20 transition p-6 rounded-2xl shadow-xl text-center text-white border border-white/20">
+<div class="text-3xl mb-2">📅</div>
+Attendance
+</a>
+
+<a href="report.html" class="bg-white/10 hover:bg-white/20 transition p-6 rounded-2xl shadow-xl text-center text-white border border-white/20">
+<div class="text-3xl mb-2">📁</div>
+Reports
+</a>
+
+</div>
+
+<!-- CHART -->
+<div class="bg-white rounded-2xl shadow-2xl p-6 mb-8">
+<h2 class="text-xl mb-4 font-bold text-gray-800">Result Chart</h2>
+<div class="max-w-md mx-auto">
+<canvas id="chart"></canvas>
+</div>
+</div>
+
+<!-- EXAM TABLE -->
+<div class="bg-white rounded-2xl shadow-2xl p-6 mb-8 overflow-x-auto">
+<h2 class="text-xl mb-4 font-bold text-gray-800">Exam Timetable</h2>
+
+<table class="w-full border-collapse overflow-hidden rounded-xl">
+<thead>
+<tr class="bg-slate-800 text-white">
+<th class="p-3 text-left">Exam</th>
+<th class="p-3 text-left">Subject</th>
+<th class="p-3 text-left">Class</th>
+<th class="p-3 text-left">Date</th>
+<th class="p-3 text-left">Time</th>
+</tr>
+</thead>
+<tbody id="examTable" class="text-gray-700"></tbody>
+</table>
+</div>
+
+<!-- RESULTS TABLE -->
+<div class="bg-white rounded-2xl shadow-2xl p-6 overflow-x-auto">
+<h2 class="text-xl mb-4 font-bold text-gray-800">Recent Results</h2>
+
+<table class="w-full border-collapse overflow-hidden rounded-xl">
+<thead>
+<tr class="bg-slate-800 text-white">
+<th class="p-3 text-left">Student</th>
+<th class="p-3 text-left">Class</th>
+<th class="p-3 text-left">Roll</th>
+<th class="p-3 text-left">Exam</th>
+<th class="p-3 text-left">Marks</th>
+<th class="p-3 text-left">Status</th>
+</tr>
+</thead>
+<tbody id="tableData" class="text-gray-700"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+// RESULTS
+fetch("http://localhost:5000/results")
+.then(r=>r.json())
+.then(d=>{
+
+  document.getElementById("students").innerText = d.length;
+
+  let pass = d.filter(x=>x.status==="Pass").length;
+  let fail = d.length - pass;
+
+  document.getElementById("pass").innerText =
+    (d.length ? (pass/d.length*100) : 0).toFixed(2)+"%";
+
+  let html="";
+  d.slice(-5).reverse().forEach(x=>{
+    html += `
+    <tr class="border-b hover:bg-gray-100 transition">
+      <td class="p-3">${x.studentName}</td>
+      <td class="p-3">${x.className || "-"}</td>
+      <td class="p-3">${x.rollNo || "-"}</td>
+      <td class="p-3">${x.subject}</td>
+      <td class="p-3 font-semibold">${x.marks}</td>
+      <td class="p-3">
+        <span class="${x.status === 'Pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-sm font-semibold">
+          ${x.status}
+        </span>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById("tableData").innerHTML = html;
+
+  new Chart(document.getElementById("chart"), {
+    type: "pie",
+    data: {
+      labels: ["Pass", "Fail"],
+      datasets: [{
+        data: [pass, fail],
+        backgroundColor: ["green", "red"]
+      }]
+    }
+  });
+
+});
+
+// EXAMS
+fetch("http://localhost:5000/exams")
+.then(r=>r.json())
+.then(d=>{
+  document.getElementById("exams").innerText = d.length;
+
+  let html="";
+  d.forEach(e=>{
+    html += `
+    <tr class="border-b hover:bg-gray-100 transition">
+      <td class="p-3">${e.name}</td>
+      <td class="p-3">${e.subject}</td>
+      <td class="p-3">${e.className || "-"}</td>
+      <td class="p-3">${e.date}</td>
+      <td class="p-3">${e.time || "-"}</td>
+    </tr>`;
+  });
+
+  document.getElementById("examTable").innerHTML = html;
+});
+
+// ATTENDANCE
+fetch("http://localhost:5000/attendance")
+.then(r=>r.json())
+.then(d=>{
+  let present = d.filter(x=>x.status==="Present").length;
+
+  document.getElementById("attendance").innerText =
+    (d.length ? (present/d.length*100) : 0).toFixed(2)+"%";
+});
+
+</script>
+
+</body>
+</html>

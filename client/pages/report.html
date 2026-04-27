@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 min-h-screen flex justify-center items-center p-4">
+
+<div class="max-w-lg w-full bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-3xl shadow-2xl text-center">
+
+<h2 class="text-3xl font-bold mb-2 text-white">Student Report</h2>
+<p class="text-gray-300 text-sm mb-6">Search student result and download report card</p>
+
+<input id="search" placeholder="Enter student name"
+class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<button onclick="generate()"
+class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white p-3 rounded-xl mb-3 font-semibold shadow-lg transition duration-300">
+Generate
+</button>
+
+<button onclick="downloadPDF()"
+class="w-full bg-gradient-to-r from-red-500 to-pink-600 hover:from-pink-600 hover:to-red-700 text-white p-3 rounded-xl font-semibold shadow-lg transition duration-300">
+Download PDF
+</button>
+
+<div id="report" class="mt-6"></div>
+
+</div>
+
+<script>
+
+function generate() {
+    let name = document.getElementById("search").value.trim();
+
+    fetch("http://localhost:5000/results")
+    .then(res => res.json())
+    .then(data => {
+
+        let students = data.filter(r => r.studentName.toLowerCase() === name.toLowerCase());
+
+        if (students.length === 0) {
+            document.getElementById("report").innerHTML =
+            `<p class="text-red-400 bg-red-500/10 border border-red-400/30 p-3 rounded-xl">No Data Found</p>`;
+            return;
+        }
+
+        let total = 0;
+
+        let html = `
+        <div id="pdfContent" class="bg-white p-6 rounded-2xl shadow-xl text-left">
+
+        <h2 class="text-2xl font-bold text-center mb-4 border-b pb-3 text-gray-800">
+        Student Report Card
+        </h2>
+
+        <p class="text-gray-700 mb-3"><b>Name:</b> ${name}</p>
+
+        <div class="overflow-x-auto">
+        <table class="w-full mt-3 border-collapse text-center rounded-xl overflow-hidden">
+            <tr class="bg-slate-800 text-white">
+                <th class="p-3">Subject</th>
+                <th class="p-3">Marks</th>
+                <th class="p-3">Result</th>
+                <th class="p-3">Grade</th>
+            </tr>
+        `;
+
+        students.forEach(s => {
+            total += Number(s.marks);
+
+            html += `
+            <tr class="border-b hover:bg-gray-100">
+                <td class="p-3 text-gray-700">${s.subject}</td>
+                <td class="p-3 font-semibold text-gray-800">${s.marks}</td>
+                <td class="p-3">
+                    <span class="${s.status === "Pass" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"} px-3 py-1 rounded-full text-sm font-semibold">
+                        ${s.status}
+                    </span>
+                </td>
+                <td class="p-3 font-bold text-gray-800">${s.grade}</td>
+            </tr>
+            `;
+        });
+
+        let percentage = (total / students.length).toFixed(2);
+
+        html += `
+        </table>
+        </div>
+
+        <div class="mt-5 p-4 bg-gray-100 rounded-xl text-gray-800">
+            <p><b>Total:</b> ${total}</p>
+            <p><b>Percentage:</b> ${percentage}%</p>
+        </div>
+
+        </div>
+        `;
+
+        document.getElementById("report").innerHTML = html;
+    });
+}
+
+function downloadPDF() {
+    let element = document.getElementById("pdfContent");
+
+    if (!element) {
+        alert("Generate report first!");
+        return;
+    }
+
+    let opt = {
+        margin: 0.5,
+        filename: 'ReportCard.pdf',
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+}
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Exam</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black min-h-screen flex justify-center items-center p-4">
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-2xl w-full max-w-md shadow-2xl">
+
+<h2 class="text-2xl font-bold mb-2 text-center text-white">Add Exam</h2>
+<p class="text-center text-gray-300 mb-6 text-sm">Create and manage exam timetable</p>
+
+<label class="text-sm font-semibold text-gray-300">Exam Name</label>
+<input id="name" placeholder="Enter exam name" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<label class="text-sm font-semibold text-gray-300">Subject</label>
+<input id="subject" placeholder="Enter subject" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<label class="text-sm font-semibold text-gray-300">Date</label>
+<input id="date" type="date" class="w-full p-3 border border-white/20 bg-white/10 text-white mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<label class="text-sm font-semibold text-gray-300">Time</label>
+<input id="time" type="time" class="w-full p-3 border border-white/20 bg-white/10 text-white mb-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<label class="text-sm font-semibold text-gray-300">Class</label>
+<input id="className" placeholder="Class (e.g. FY BSc)" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 mb-5 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<button onclick="addExam()" class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-purple-600 hover:to-pink-600 text-white w-full p-3 rounded-lg font-semibold shadow-lg transition duration-300">
+Add Exam
+</button>
+
+<h3 class="mt-7 mb-3 font-bold text-white text-lg">All Exams</h3>
+
+<ul id="list" class="space-y-3 max-h-60 overflow-y-auto"></ul>
+
+</div>
+
+<script>
+
+const list = document.getElementById("list");
+
+function addExam() {
+    const name = document.getElementById("name").value;
+    const subject = document.getElementById("subject").value;
+    const date = document.getElementById("date").value;
+    const time = document.getElementById("time").value;
+    const className = document.getElementById("className").value;
+
+    if(!name || !subject || !date || !className){
+        alert("Please fill all fields");
+        return;
+    }
+
+    fetch("http://localhost:5000/exams/add", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name, subject, date, time, className })
+    })
+    .then(res => res.json())
+    .then(() => {
+        alert("Exam Added ✅");
+        loadExams();
+    })
+    .catch(err => console.log(err));
+}
+
+function loadExams() {
+    fetch("http://localhost:5000/exams")
+    .then(res => res.json())
+    .then(data => {
+        list.innerHTML = "";
+        data.forEach(e => {
+            list.innerHTML += `
+            <li class="bg-white/10 border border-white/20 p-4 rounded-xl shadow text-gray-200">
+              <div class="font-bold text-white">${e.name}</div>
+              <div class="text-sm text-gray-300 mt-1">
+                ${e.subject} | ${e.className}
+              </div>
+              <div class="text-xs text-gray-400 mt-2">
+                ${e.date} | ${e.time || "-"}
+              </div>
+            </li>`;
+        });
+    });
+}
+
+loadExams();
+
+</script>
+
+</body>
+</html>

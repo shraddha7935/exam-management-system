@@ -1,0 +1,71 @@
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<title>Student Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 min-h-screen flex justify-center items-center p-4">
+
+<div class="bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-3xl shadow-2xl w-full max-w-sm">
+
+<h2 class="text-3xl font-bold text-center mb-2 text-white">
+🎓 Student Login
+</h2>
+
+<p class="text-center text-gray-300 text-sm mb-6">
+Access your dashboard and results
+</p>
+
+<label class="text-sm text-gray-300 font-semibold">Email</label>
+<input id="email" placeholder="Enter your email"
+class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<label class="text-sm text-gray-300 font-semibold">Password</label>
+<input id="password" type="password" placeholder="Enter your password"
+class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-5 focus:outline-none focus:ring-2 focus:ring-blue-400">
+
+<button onclick="login()"
+class="w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-indigo-600 hover:to-purple-600 text-white p-3 rounded-xl font-semibold shadow-lg transition duration-300">
+Login
+</button>
+
+</div>
+
+<script>
+function login(){
+
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if(!email || !password){
+        alert("Fill all fields");
+        return;
+    }
+
+    fetch("http://localhost:5000/students/login",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({email,password})
+    })
+    .then(res=>{
+        if(!res.ok){
+            throw new Error("Login Failed");
+        }
+        return res.json();
+    })
+    .then(data=>{
+        localStorage.setItem("student", JSON.stringify(data));
+        window.location.href = "studentdashboard.html";
+    })
+    .catch(()=>{
+        alert("Invalid Email or Password");
+    });
+}
+</script>
+
+</body>
+</html>
+```

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Result System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-gray-800 to-slate-900 min-h-screen flex justify-center items-center p-4">
+
+<div class="max-w-lg w-full bg-white/10 backdrop-blur-lg border border-white/20 p-8 rounded-3xl shadow-2xl">
+
+<h2 class="text-3xl font-bold text-center mb-2 text-white">Add Result</h2>
+<p class="text-center text-gray-300 text-sm mb-6">Add, update and manage student results</p>
+
+<input id="studentName" placeholder="Student Name" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<input id="className" placeholder="Class" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<input id="rollNo" type="number" placeholder="Roll No" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<input id="subject" placeholder="Subject" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-3 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<input id="marks" type="number" placeholder="Marks" class="w-full p-3 border border-white/20 bg-white/10 text-white placeholder-gray-400 rounded-xl mb-5 focus:outline-none focus:ring-2 focus:ring-green-400">
+
+<button onclick="addResult()" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-emerald-600 hover:to-green-700 text-white p-3 rounded-xl mb-6 font-semibold shadow-lg transition duration-300">
+Add / Update Result
+</button>
+
+<h3 class="font-bold text-white text-lg mb-3">All Results</h3>
+
+<ul id="list" class="mt-2 space-y-3 max-h-80 overflow-y-auto"></ul>
+
+</div>
+
+<script>
+
+let editId = null;
+
+// ================= ADD / UPDATE =================
+function addResult() {
+
+    let studentName = document.getElementById("studentName").value.trim();
+    let className = document.getElementById("className").value.trim();
+    let rollNo = Number(document.getElementById("rollNo").value);
+    let subject = document.getElementById("subject").value.trim();
+    let marks = Number(document.getElementById("marks").value);
+
+    // VALIDATION
+    if(!studentName || !className || !rollNo || !subject || marks === ""){
+        alert("All fields required!");
+        return;
+    }
+
+    // STATUS
+    const status = marks >= 40 ? "Pass" : "Fail";
+
+    // GRADE SYSTEM
+    const grade =
+        marks >= 75 ? "A" :
+        marks >= 60 ? "B" :
+        marks >= 50 ? "C" :
+        marks >= 40 ? "D" : "F";
+
+    const data = { studentName, className, rollNo, subject, marks, status, grade };
+
+    let url = "http://localhost:5000/results/add";
+    let method = "POST";
+
+    if(editId){
+        url = "http://localhost:5000/results/" + editId;
+        method = "PUT";
+    }
+
+    fetch(url,{
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(()=> {
+        editId = null;
+        loadResults();
+        clearForm();
+    });
+}
+
+// ================= LOAD =================
+function loadResults() {
+    fetch("http://localhost:5000/results")
+    .then(res => res.json())
+    .then(data => {
+        const list = document.getElementById("list");
+        list.innerHTML = "";
+
+        if(data.length === 0){
+            list.innerHTML = `
+            <li class="bg-white/10 border border-white/20 text-gray-300 p-4 rounded-xl text-center">
+                No Results Found
+            </li>`;
+            return;
+        }
+
+        data.forEach(r => {
+            list.innerHTML += `
+            <li class="bg-white/10 border border-white/20 p-4 rounded-2xl shadow-lg text-gray-200">
+                <div class="flex justify-between items-start gap-3">
+                    <div>
+                        <h4 class="font-bold text-white text-lg">${r.studentName}</h4>
+                        <p class="text-sm text-gray-300">
+                            Class: ${r.className || "-"} | Roll: ${r.rollNo || "-"}
+                        </p>
+                        <p class="text-sm text-gray-300 mt-1">
+                            ${r.subject} | Marks: ${r.marks} | Grade: ${r.grade}
+                        </p>
+                    </div>
+
+                    <span class="${r.status === 'Pass' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-xs font-bold">
+                        ${r.status}
+                    </span>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button onclick="editResult('${r._id}','${r.studentName}','${r.className}','${r.rollNo}','${r.subject}','${r.marks}')"
+                    class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        Edit
+                    </button>
+
+                    <button onclick="deleteResult('${r._id}')"
+                    class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                        Delete
+                    </button>
+                </div>
+            </li>`;
+        });
+    });
+}
+
+// ================= DELETE =================
+function deleteResult(id){
+    fetch(`http://localhost:5000/results/${id}`,{
+        method:"DELETE"
+    }).then(()=>loadResults());
+}
+
+// ================= EDIT =================
+function editResult(id,name,className,rollNo,subject,marks){
+    document.getElementById("studentName").value = name;
+    document.getElementById("className").value = className;
+    document.getElementById("rollNo").value = rollNo;
+    document.getElementById("subject").value = subject;
+    document.getElementById("marks").value = marks;
+
+    editId = id;
+}
+
+// ================= CLEAR FORM =================
+function clearForm(){
+    document.getElementById("studentName").value="";
+    document.getElementById("className").value="";
+    document.getElementById("rollNo").value="";
+    document.getElementById("subject").value="";
+    document.getElementById("marks").value="";
+}
+
+// INIT
+loadResults();
+
+</script>
+
+</body>
+</html>
